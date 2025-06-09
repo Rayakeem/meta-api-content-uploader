@@ -85,21 +85,21 @@ router.get("/callback", async (req, res) => {
     const { id: instagramUserId, username, profile_picture_url } = profileRes.data;
 
     // 6. Instagram 데이터 저장
-    await db.collection("users").updateOne(
-      { _id: new ObjectId(userId) },
-      {
-        $set: {
-          instagram: {
-            userId: instagramUserId,
-            username: username,
-            accessToken: longLivedToken,
-            profileUrl: profile_picture_url || null,
-          },
-        },
-      }
-    );
+    // await db.collection("users").updateOne(
+    //   { _id: new ObjectId(userId) },
+    //   {
+    //     $set: {
+    //       instagram: {
+    //         userId: instagramUserId,
+    //         username: username,
+    //         accessToken: longLivedToken,
+    //         profileUrl: profile_picture_url || null,
+    //       },
+    //     },
+    //   }
+    // );
 
-    // 7. 프론트로 마이페이지로 리디렉션
+    // 7. 프론트로 리디렉션
     return res.redirect("your_url?state=true");
 
     } catch (err) {

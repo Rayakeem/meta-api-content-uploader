@@ -14,12 +14,5 @@ app.use('/api/auth/threads', require('./auth/threads_auth.js'));
 
 //upload
 app.use('/api/upload/facebook', require('./upload/facebook_page.js'));
-app.use('/api/upload/facebook-instagram', require('./upload/facebook_instagram.js'));
 app.use('/api/upload/instagram', require('./upload/instagram.js'));
 app.use('/api/upload/threads', require('./upload/threads.js'));
-
-//s3
-app.use('/uploader', require('./utils/s3Uploader.js'));
-
-//refreshToken
-app.use('/api/refresh-token', require('./utils/tokenManager.js'));
