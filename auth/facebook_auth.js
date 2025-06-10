@@ -1,19 +1,28 @@
 const express = require("express");
 const axios = require("axios");
+const jwt = require("jsonwebtoken");
+// const connectDB = require("../../database");
+const { ObjectId } = require("mongodb");
 const { v4: uuidv4 } = require("uuid");
+
 
 const router = express.Router();
 const FB_APP_ID = process.env.FB_APP_ID;
 const FB_APP_SECRET = process.env.FB_APP_SECRET;
 const REDIRECT_URI = "your_redirect_url/callback";
 
-// 1. Facebook 로그인 시작 (OAuth 요청 URL 생성)
+// let db;
+// connectDB.then((client) => {
+//   db = client.db("your_DB_name");
+// }).catch(console.error);
+
+// 1️⃣ Facebook 로그인 시작 (OAuth 요청 URL 생성)
 router.get("/login", (req, res) => {
   const facebookAuthUrl = `https://www.facebook.com/v22.0/dialog/oauth?client_id=${FB_APP_ID}&redirect_uri=${REDIRECT_URI}&scope=pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish&response_type=code`;
   res.redirect(facebookAuthUrl);
 });
 
-// 2. Facebook OAuth 콜백 (Access Token 가져오기)
+// 2️⃣ Facebook OAuth 콜백 (Access Token 가져오기)
 router.get("/callback", async (req, res) => {
   const { code } = req.query;
 
@@ -38,7 +47,7 @@ router.get("/callback", async (req, res) => {
       createdAt: new Date(),
     });
 
-    // 3. 프론트로 sessionId를 쿼리로 전달
+    // 3. 프론트로 sessionId만 전달
     return res.redirect(`your_url?sessionId=${sessionId}`);
 
   } catch (error) {
@@ -64,6 +73,7 @@ router.post("/session", async (req, res) => {
   return res.json({ success: true, accessToken: session.accessToken });
 });
 
+//존재하는 페이지를 조회하고 저장하는 로직
 
 // 사용자 페이지 목록 조회
 router.get("/pages", async (req, res) => {
@@ -92,7 +102,7 @@ router.get("/pages", async (req, res) => {
 
     let pages = pageResponse.data.data;
 
-    // 3. 각 페이지의 Instagram 비즈니스 계정 ID 가져오기
+    // 3. 각 페이지의 Instagram 비즈니스 계정 ID 가져오기 (선택사항)
     pages = await Promise.all(
       pages.map(async (page) => {
         try {
@@ -134,13 +144,14 @@ router.post("/select-page", async (req, res) => {
   const { token, facebookToken, facebookId, selectedPage } = req.body;
   let userId;
   try {
+    // TokNow 토큰 검증
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     userId = decoded.userId;
   } catch (err) {
-    console.error("토큰 검증 실패:", err.message);
+    console.error("TokNow 토큰 검증 실패:", err.message);
     return res.status(401).json({
       success: false,
-      message: "액세스 토큰이 만료되었거나 유효하지 않습니다.",
+      message: "TokNow 액세스 토큰이 만료되었거나 유효하지 않습니다.",
     });
   }
 
@@ -168,25 +179,25 @@ router.post("/select-page", async (req, res) => {
       }
     }
 
-    // await db.collection("users").updateOne(
-    //   { _id: new ObjectId(userId) },
-    //   {
-    //     $set: {
-    //       facebook: {
-    //         userId: facebookId,
-    //         userAccessToken: facebookToken,
-    //         selectedPage: {
-    //           id: pageId,
-    //           name: pageName,
-    //           access_token: pageAccessToken,
-    //           profileUrl: null,
-    //           instagram_business_account: instagramBusinessAccountId || null,
-    //           instagram_business_username: instagramBusinessUsername || null,
-    //         },
-    //       },
-    //     },
-    //   }
-    // );
+    await db.collection("users").updateOne(
+      { _id: new ObjectId(userId) },
+      {
+        $set: {
+          facebook: {
+            userId: facebookId,
+            userAccessToken: facebookToken,
+            selectedPage: {
+              id: pageId,
+              name: pageName,
+              access_token: pageAccessToken,
+              profileUrl: null,
+              instagram_business_account: instagramBusinessAccountId || null,
+              instagram_business_username: instagramBusinessUsername || null,
+            },
+          },
+        },
+      }
+    );
 
     return res.json({
       success: true,
@@ -228,5 +239,6 @@ router.get("/page-id", async (req, res) => {
     return res.status(401).json({success: false, error: "인증 실패"});
   }
 })
+
 
 module.exports = router;

@@ -1,8 +1,14 @@
 const router = require("express").Router();
 const axios = require("axios");
 const { ObjectId } = require("mongodb");
+// const connectDB = require("../../database");
 const jwt = require("jsonwebtoken");
 const { uploadFacebook } = require("../utils/s3Uploader");
+
+// let db;
+// connectDB.then((client) => {
+//   db = client.db("your_DB_name");
+// }).catch(console.error);
 
 //페이스북 게시글 업로드
 router.post("/upload", async (req, res, next) => {

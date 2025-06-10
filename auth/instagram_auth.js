@@ -2,19 +2,25 @@ require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
+// const connectDB = require("../../database");
 const { ObjectId } = require("mongodb");
 
 const router = express.Router();
 const IG_APP_ID = process.env.IG_APP_ID;
 const IG_APP_SECRET = process.env.IG_APP_SECRET;
-const IG_REDIRECT_URI = "your_redirect_url/callbak";
+const IG_REDIRECT_URI = "your_redirect_url/callback";
 
-// 1. Instagram 로그인 시작
+// let db;
+// connectDB.then((client) => {
+//   db = client.db("your_DB_name");
+// }).catch(console.error);
+
+// 1️⃣ Instagram 로그인 시작
 router.get("/login", (req, res) => {
   const { token } = req.query;
 
   if (!token) {
-    return res.status(401).json({ success: false, message: "토큰이 필요합니다." });
+    return res.status(401).json({ success: false, message: "TokNow 토큰이 필요합니다." });
   }
 
   try {
@@ -27,12 +33,12 @@ router.get("/login", (req, res) => {
     res.redirect(authUrl);
 
   } catch (error) {
-    console.error("토큰 검증 실패:", error.message);
-    return res.status(401).json({ success: false, message: "토큰이 유효하지 않습니다." });
+    console.error("TokNow 토큰 검증 실패:", error.message);
+    return res.status(401).json({ success: false, message: "TokNow 토큰이 유효하지 않습니다." });
   }
 });
 
-// 2. Instagram OAuth 콜백
+// 2️⃣ Instagram OAuth 콜백
 router.get("/callback", async (req, res) => {
   const { code, state } = req.query;
 
@@ -48,7 +54,7 @@ router.get("/callback", async (req, res) => {
   }
 
   try {
-    // 3. Short-lived Token 요청
+    // 3️⃣ Short-lived Token 요청
     const shortTokenRes = await axios.post(
       "https://api.instagram.com/oauth/access_token",
       new URLSearchParams({
@@ -63,7 +69,7 @@ router.get("/callback", async (req, res) => {
 
     const { access_token: shortToken } = shortTokenRes.data;
 
-    // 4. Long-lived Token 요청
+    // 4️⃣ Long-lived Token 요청
     const longTokenRes = await axios.get("https://graph.instagram.com/access_token", {
       params: {
         grant_type: "ig_exchange_token",
@@ -74,7 +80,7 @@ router.get("/callback", async (req, res) => {
 
     const longLivedToken = longTokenRes.data.access_token;
 
-    // 5. 사용자 정보 요청
+    // 5️⃣ 사용자 정보 요청
     const profileRes = await axios.get("https://graph.instagram.com/me", {
       params: {
         access_token: longLivedToken,
@@ -84,23 +90,23 @@ router.get("/callback", async (req, res) => {
     
     const { id: instagramUserId, username, profile_picture_url } = profileRes.data;
 
-    // 6. Instagram 데이터 저장
-    // await db.collection("users").updateOne(
-    //   { _id: new ObjectId(userId) },
-    //   {
-    //     $set: {
-    //       instagram: {
-    //         userId: instagramUserId,
-    //         username: username,
-    //         accessToken: longLivedToken,
-    //         profileUrl: profile_picture_url || null,
-    //       },
-    //     },
-    //   }
-    // );
+    // 6️⃣ Instagram 데이터 저장
+    await db.collection("users").updateOne(
+      { _id: new ObjectId(userId) },
+      {
+        $set: {
+          instagram: {
+            userId: instagramUserId,
+            username: username,
+            accessToken: longLivedToken,
+            profileUrl: profile_picture_url || null,
+          },
+        },
+      }
+    );
 
-    // 7. 프론트로 리디렉션
-    return res.redirect("your_url?state=true");
+    // 7️⃣ 프론트로 리디렉션
+    return res.redirect("your_redirect_url?state=true");
 
     } catch (err) {
       console.error("Instagram 인증 실패:", {
@@ -116,7 +122,7 @@ router.get("/callback", async (req, res) => {
         message.includes("Invalid OAuth access token") ||
         message.includes("instagram_business_account")
       ) {
-        return res.redirect("your_url?state=false");
+        return res.redirect("your_redirect_url?state=false");
       }
 
       return res.status(500).json({ message: "Instagram 인증 실패", error: err.message });

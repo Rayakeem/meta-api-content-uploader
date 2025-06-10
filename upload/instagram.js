@@ -1,14 +1,21 @@
 const express = require("express");
 const axios = require("axios");
+// const connectDB = require("../../database");
 const { ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 const router = express.Router();
 const { uploadInstagram } = require("../utils/s3Uploader");
 
-// 1. Instagram 게시물 업로드 (이미지 게시)
+// let db;
+// connectDB.then((client) => {
+//   db = client.db("your_DB_name");
+// }).catch(console.error);
+
+// 1️⃣ Instagram 게시물 업로드 (이미지 게시)
 router.post("/upload", async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
+  //1. 톡나우 인증 토큰 확인
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ success: false, message: "인증 토큰이 없습니다." });
   }
@@ -26,7 +33,7 @@ router.post("/upload", async (req, res, next) => {
     });
   }
 
-  // 2. S3 업로드 미들웨어에 userId 전달
+  // S3 업로드 미들웨어에 userId 전달
   req.userId = userId;
 
   uploadInstagram.single("file")(req, res, async (err) => {

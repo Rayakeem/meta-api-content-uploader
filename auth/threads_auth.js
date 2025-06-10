@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
+// const connectDB = require("../../database");
 const { ObjectId } = require("mongodb");
 
 const router = express.Router();
@@ -9,12 +10,17 @@ const THREADS_APP_ID = process.env.THREADS_APP_ID;
 const THREADS_APP_SECRET = process.env.THREADS_APP_SECRET;
 const THREADS_REDIRECT_URI = "your_redirect_url/callback";
 
-// 1. Threads 로그인 시작
+// let db;
+// connectDB.then((client) => {
+//   db = client.db("your_DB_name");
+// }).catch(console.error);
+
+// 1️⃣ Threads 로그인 시작
 router.get("/login", (req, res) => {
   const { token } = req.query;
 
   if (!token) {
-    return res.status(401).json({ success: false, message: "토큰이 필요합니다." });
+    return res.status(401).json({ success: false, message: "TokNow 토큰이 필요합니다." });
   }
 
   try {
@@ -25,12 +31,12 @@ router.get("/login", (req, res) => {
     const authUrl = `https://threads.net/oauth/authorize?client_id=${THREADS_APP_ID}&redirect_uri=${THREADS_REDIRECT_URI}&scope=threads_basic,threads_content_publish&response_type=code&state=${state}`;
     res.redirect(authUrl);
   } catch (error) {
-    console.error("토큰 검증 실패:", error.message);
-    return res.status(401).json({ success: false, message: "토큰이 유효하지 않습니다." });
+    console.error("TokNow 토큰 검증 실패:", error.message);
+    return res.status(401).json({ success: false, message: "TokNow 토큰이 유효하지 않습니다." });
   }
 });
 
-// 2. Threads OAuth 콜백
+// 2️⃣ Threads OAuth 콜백
 router.get("/callback", async (req, res) => {
   const { code, state } = req.query;
 
@@ -45,7 +51,7 @@ router.get("/callback", async (req, res) => {
   }
 
   try {
-    // 3. Short-lived Token 요청
+    // 3️⃣ Short-lived Token 요청
     const accessTokenRes = await axios.post(
       "https://graph.threads.net/oauth/access_token",
       new URLSearchParams({
@@ -59,7 +65,7 @@ router.get("/callback", async (req, res) => {
 
     const accessToken = accessTokenRes.data.access_token;
 
-    // 4. Long-lived Token 요청
+    // 4️⃣ Long-lived Token 요청
     const longTokenRes = await axios.get("https://graph.threads.net/access_token", {
       params: {
         grant_type: "th_exchange_token",
@@ -71,7 +77,7 @@ router.get("/callback", async (req, res) => {
     const longToken = longTokenRes.data.access_token;
     const expiresIn = longTokenRes.data.expires_in; //토큰 만료일 (90일)
 
-    // 5. 사용자 정보 요청
+    // 5️⃣ 사용자 정보 요청
     const userInfoRes = await axios.get("https://graph.threads.net/v1.0/me", {
       params: {
         fields: "id,username,threads_profile_picture_url",
@@ -91,23 +97,23 @@ router.get("/callback", async (req, res) => {
     const threadsUsername = userInfo.username;
     const threadsProfilePictureUrl = userInfo.threads_profile_picture_url;
 
-    // 6.Threads 데이터 저장
-    // const userData = await db.collection("users").updateOne(
-    //   { _id: new ObjectId(userId) },
-    //   { 
-    //     $set: { 
-    //       threads: {
-    //         userId: threadsId,
-    //         username: threadsUsername,
-    //         accessToken: longToken,
-    //         profileUrl: threadsProfilePictureUrl || null,
-    //         expiresIn: expiresIn,
-    //       }
-    //     } 
-    //   },
-    // );
+    // 6️⃣ Threads 데이터 저장
+    const userData = await db.collection("users").updateOne(
+      { _id: new ObjectId(userId) },
+      { 
+        $set: { 
+          threads: {
+            userId: threadsId,
+            username: threadsUsername,
+            accessToken: longToken,
+            profileUrl: threadsProfilePictureUrl || null,
+            expiresIn: expiresIn,
+          }
+        } 
+      },
+    );
 
-    // 7. 프론트로 리디렉션
+    // 7️⃣ 프론트로 리디렉션
     return res.redirect("your_redirect_url?state=true");
   } catch (error) {
     console.error("Threads OAuth 인증 실패:", {

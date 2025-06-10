@@ -1,9 +1,15 @@
 const express = require("express");
 const axios = require("axios");
+// const connectDB = require("../../database");
 const { ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 const router = express.Router();
 const {uploadThreads} = require("../utils/s3Uploader");
+
+// let db;
+// connectDB.then((client) => {
+//   db = client.db("your_DB_name");
+// }).catch(console.error);
 
 // Threads 게시글 업로드 (이미지/텍스트)
 router.post("/upload", async (req, res, next) => {
@@ -70,7 +76,7 @@ router.post("/upload", async (req, res, next) => {
 
         const creationId = mediaResponse.data.id;
 
-        // 30초 대기 (Threads API 권장사항)
+        // 20초 대기 (Threads API 권장사항)
         await new Promise(resolve => setTimeout(resolve, 20000));
 
         // 2단계: 게시물 발행
@@ -100,7 +106,7 @@ router.post("/upload", async (req, res, next) => {
 
         const creationId = mediaResponse.data.id;
 
-        // 30초 대기
+        // 20초 대기
         await new Promise(resolve => setTimeout(resolve, 20000));
 
         response = await axios.post(
